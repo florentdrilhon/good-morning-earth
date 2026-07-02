@@ -1,35 +1,42 @@
 import { useEffect, useState } from "react";
 import { login } from "./lib/spotify/login";
 import { loadStoredTokens, isAuthenticated } from "./lib/spotify/auth";
-import { getPlaybackState, pause, resume, ensureActiveDevice } from "./lib/spotify/client";
+import { startPoller } from "./lib/spotify/poller";
 import type { PlaybackState } from "./lib/spotify/types";
+import { Player } from "./components/Player";
+import "./App.css";
 
 export default function App() {
   const [authed, setAuthed] = useState(false);
-  const [state, setState] = useState<PlaybackState | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [playback, setPlayback] = useState<PlaybackState | null>(null);
 
   useEffect(() => {
-    loadStoredTokens().then((ok) => setAuthed(ok));
+    loadStoredTokens().then(setAuthed);
   }, []);
 
   useEffect(() => {
     if (!authed) return;
-    const id = setInterval(() => getPlaybackState().then(setState).catch((e) => setError(String(e))), 3000);
-    return () => clearInterval(id);
+    return startPoller({ onState: setPlayback, onTrackChange: () => {} });
   }, [authed]);
 
-  const run = (fn: () => Promise<unknown>) => () =>
-    ensureActiveDevice().then(fn).then(() => setError(null)).catch((e) => setError(String(e)));
-
   if (!authed)
-    return <button onClick={() => login().then(() => setAuthed(isAuthenticated()))}>Se connecter à Spotify</button>;
+    return (
+      <div className="login-screen">
+        <h1 className="login-title">Good Morning Earth</h1>
+        <button
+          className="login-button"
+          onClick={() => login().then(() => setAuthed(isAuthenticated()))}
+        >
+          Se connecter à Spotify
+        </button>
+      </div>
+    );
 
   return (
-    <main>
-      <p>{state?.track ? `${state.track.name} — ${state.track.artists}` : "Rien ne joue"}</p>
-      <button onClick={run(state?.isPlaying ? pause : resume)}>{state?.isPlaying ? "Pause" : "Play"}</button>
-      {error && <p style={{ color: "red" }}>{error}</p>}
-    </main>
+    <div className="layout">
+      <aside className="zone-library">{/* Bibliothèque — Task 12 */}</aside>
+      <section className="zone-chat">{/* Chat du Comte — Task 13 */}</section>
+      <Player state={playback} />
+    </div>
   );
 }

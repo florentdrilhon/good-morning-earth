@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { login } from "./lib/spotify/login";
 import { loadStoredTokens, isAuthenticated } from "./lib/spotify/auth";
 import { startPoller } from "./lib/spotify/poller";
+import { announceTrack } from "./lib/agent/announcer";
 import type { PlaybackState } from "./lib/spotify/types";
 import { Player } from "./components/Player";
 import { Library } from "./components/Library";
@@ -12,7 +13,11 @@ import "./App.css";
 export default function App() {
   const [authed, setAuthed] = useState(false);
   const [playback, setPlayback] = useState<PlaybackState | null>(null);
-  const { messages, busy, send } = useComte();
+  const [radioMode, setRadioMode] = useState(true);
+  const { messages, busy, send, pushComte } = useComte();
+
+  const radioModeRef = useRef(radioMode);
+  radioModeRef.current = radioMode;
 
   useEffect(() => {
     loadStoredTokens().then(setAuthed);
@@ -20,7 +25,13 @@ export default function App() {
 
   useEffect(() => {
     if (!authed) return;
-    return startPoller({ onState: setPlayback, onTrackChange: () => {} });
+    return startPoller({
+      onState: setPlayback,
+      onTrackChange: (track, previous) => {
+        if (!radioModeRef.current || !previous) return; // ref, pas de state stale ; pas d'intervention au premier morceau
+        announceTrack(track, previous).then(pushComte).catch(() => {});
+      },
+    });
   }, [authed]);
 
   if (!authed)
@@ -42,7 +53,13 @@ export default function App() {
         <Library />
       </aside>
       <section className="zone-chat">
-        <Chat messages={messages} busy={busy} onSend={send} />
+        <Chat
+          messages={messages}
+          busy={busy}
+          onSend={send}
+          radioMode={radioMode}
+          onToggleRadio={() => setRadioMode((on) => !on)}
+        />
       </section>
       <Player state={playback} />
     </div>

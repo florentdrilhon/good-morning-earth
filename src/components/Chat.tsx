@@ -9,9 +9,11 @@ type ChatProps = Readonly<{
   messages: UiMessage[];
   busy: boolean;
   onSend: (text: string) => void;
+  radioMode: boolean;
+  onToggleRadio: () => void;
 }>;
 
-export function Chat({ messages, busy, onSend }: ChatProps) {
+export function Chat({ messages, busy, onSend, radioMode, onToggleRadio }: ChatProps) {
   const [draft, setDraft] = useState("");
   const bottom = useRef<HTMLDivElement>(null);
 
@@ -31,7 +33,15 @@ export function Chat({ messages, busy, onSend }: ChatProps) {
     <div className="chat">
       <header className="chat-header">
         <span className="chat-header-title">Studio — Le Comte</span>
-        <span className="chat-onair">● ON AIR</span>
+        <button
+          type="button"
+          className={`chat-onair${radioMode ? "" : " chat-onair-off"}`}
+          onClick={onToggleRadio}
+          aria-pressed={radioMode}
+          title="Mode animateur : interventions au changement de morceau"
+        >
+          {radioMode ? "● ON AIR" : "OFF AIR"}
+        </button>
       </header>
       <div className="chat-messages">
         {messages.map((m, i) => (

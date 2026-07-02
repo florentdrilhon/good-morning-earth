@@ -68,6 +68,7 @@ describe("recherche et queue", () => {
     const url = (fetch as any).mock.calls[0][0] as string;
     expect(url).toContain("q=so+what");
     expect(url).toContain("type=track");
+    expect(url).toContain("limit=8");
   });
 
   it("encode l'URI dans l'ajout à la queue", async () => {

@@ -27,8 +27,8 @@ moderne et lisible.
 | Bordures | `#2E2A24` |
 | Texte | `#EDE7DC` |
 | Texte atténué | `#8C8577` |
-| Accent (ambre) | `#E8863A` |
-| Texte sur accent | `#2A1608` |
+| Accent (rose vif) | `#FF4D7D` |
+| Texte sur accent | `#2A0512` |
 
 ## Layout
 
@@ -36,13 +36,13 @@ moderne et lisible.
 - Grid 3 zones : sidebar bibliothèque **240px** à gauche (fond profond),
   chat du Comte à droite, barre lecteur en bas (fond profond, pleine largeur)
 - Chat : en-tête fin `STUDIO — LE COMTE` + badge ON AIR à droite ;
-  bulles Comte à gauche (surface + label mono ambre), bulles user à droite
+  bulles Comte à gauche (surface + label mono accent), bulles user à droite
   (surface user) ; input en bas avec bouton accent
 - Lecteur : pochette 38-48px, titre en Space Grotesk + artiste en mono
-  atténué, vumètre 6 barres ambre à côté du titre, contrôles centrés
+  atténué, vumètre 6 barres accent à côté du titre, contrôles centrés
   (play = cercle plein clair), volume à droite
 - Bouton play : cercle plein `#EDE7DC`, icône foncée
-- Un seul accent (ambre) ; jamais plus
+- Un seul accent (rose vif) ; jamais plus
 
 ## Références de la session
 

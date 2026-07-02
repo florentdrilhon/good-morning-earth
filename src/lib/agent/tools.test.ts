@@ -18,6 +18,7 @@ import { addToQueue, ensureActiveDevice } from "../spotify/client";
 
 describe("tools", () => {
   it("expose chaque outil avec un schéma valide", () => {
+    expect(TOOL_DEFS).toHaveLength(17);
     for (const t of TOOL_DEFS) {
       expect(t.type).toBe("function");
       expect(t.function.name).toMatch(/^[a-z_]+$/);

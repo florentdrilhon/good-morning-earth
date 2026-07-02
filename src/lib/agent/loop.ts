@@ -1,6 +1,7 @@
 import { chat, type ChatMessage } from "./ollama";
 import { TOOL_DEFS, dispatch } from "./tools";
 import { PERSONA } from "./persona";
+import { profileSection } from "./profile";
 
 const MAX_ITERATIONS = 8;
 
@@ -25,7 +26,7 @@ export function trimHistory(history: ChatMessage[], max = 40): ChatMessage[] {
 export async function runAgent(history: ChatMessage[]): Promise<ChatMessage[]> {
   history = trimHistory(history);
   for (let i = 0; i < MAX_ITERATIONS; i++) {
-    const msg = await chat([{ role: "system", content: PERSONA }, ...history], TOOL_DEFS);
+    const msg = await chat([{ role: "system", content: PERSONA + profileSection() }, ...history], TOOL_DEFS);
     history.push(msg);
     if (!msg.tool_calls?.length) return history;
     for (const tc of msg.tool_calls) {

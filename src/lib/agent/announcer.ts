@@ -1,11 +1,12 @@
 import { chat } from "./ollama";
 import { PERSONA } from "./persona";
+import { profileSection } from "./profile";
 import type { Track } from "../spotify/types";
 
 export async function announceTrack(track: Track, previous: Track | null): Promise<string> {
   const msg = await chat(
     [
-      { role: "system", content: PERSONA },
+      { role: "system", content: PERSONA + profileSection() },
       {
         role: "user",
         content:

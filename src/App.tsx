@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { login } from "./lib/spotify/login";
-import { loadStoredTokens, isAuthenticated } from "./lib/spotify/auth";
+import { loadStoredTokens, isAuthenticated, clearTokens } from "./lib/spotify/auth";
+import { SpotifyError } from "./lib/spotify/client";
 import { startPoller } from "./lib/spotify/poller";
 import { announceTrack } from "./lib/agent/announcer";
+import { initListenerProfile } from "./lib/agent/profile";
 import { buildMessageContext, type LastTrackChange } from "./lib/agent/messageContext";
 import { OllamaDownError } from "./lib/agent/ollama";
 import type { PlaybackState } from "./lib/spotify/types";
@@ -32,6 +34,11 @@ export default function App() {
 
   useEffect(() => {
     if (!authed) return;
+    initListenerProfile().catch((e) => {
+      // Tokens sans le scope user-top-read (migration) → 403 : on repasse par l'OAuth une fois.
+      if (e instanceof SpotifyError && e.status === 403) clearTokens().then(() => setAuthed(false));
+      else console.error("Profil d'auditeur indisponible :", e);
+    });
     return startPoller({
       onState: (state) => {
         playbackRef.current = state;

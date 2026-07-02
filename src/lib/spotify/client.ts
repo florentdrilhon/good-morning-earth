@@ -106,6 +106,18 @@ export async function getPlaylistTracks(id: string): Promise<Track[]> {
   return (raw?.items ?? []).filter((i: any) => i.track).map((i: any) => mapTrack(i.track));
 }
 
+export type TopTimeRange = "short_term" | "medium_term" | "long_term";
+
+export async function getTopArtists(timeRange: TopTimeRange, limit = 20): Promise<{ name: string; genres: string[] }[]> {
+  const raw = await api<any>(`/me/top/artists?time_range=${timeRange}&limit=${limit}`);
+  return (raw?.items ?? []).map((a: any) => ({ name: a.name, genres: a.genres ?? [] }));
+}
+
+export async function getTopTracks(timeRange: TopTimeRange, limit = 20): Promise<Track[]> {
+  const raw = await api<any>(`/me/top/tracks?time_range=${timeRange}&limit=${limit}`);
+  return (raw?.items ?? []).map(mapTrack);
+}
+
 export async function getLikedTracks(limit = 50): Promise<Track[]> {
   const raw = await api<any>(`/me/tracks?limit=${limit}`);
   return (raw?.items ?? []).map((i: any) => mapTrack(i.track));

@@ -3,7 +3,7 @@ import { describe, it, expect, vi, afterEach } from "vitest";
 vi.mock("@tauri-apps/api/core", () => ({ invoke: vi.fn().mockResolvedValue(null) }));
 vi.mock("./auth", () => ({ getAccessToken: vi.fn().mockResolvedValue("TOKEN") }));
 
-import { getPlaybackState, pause, searchTracks, addToQueue, getPlaylists, trackIdFromUri, saveTrack, ensureActiveDevice } from "./client";
+import { getPlaybackState, pause, searchTracks, addToQueue, getPlaylists, trackIdFromUri, saveTrack, ensureActiveDevice, getTopArtists, getTopTracks } from "./client";
 
 const rawState = {
   is_playing: true,
@@ -122,6 +122,41 @@ describe("recherche et queue", () => {
     await addToQueue("spotify:track:1");
     expect(f.mock.calls[0][0]).toContain(`uri=${encodeURIComponent("spotify:track:1")}`);
     expect(f.mock.calls[0][1].method).toBe("POST");
+  });
+});
+
+describe("top écoutes", () => {
+  it("mappe les top artistes et passe time_range + limit", async () => {
+    mockFetch({
+      json: async () => ({ items: [{ name: "Aphex Twin", genres: ["idm", "ambient"] }, { name: "Boards of Canada" }] }),
+    });
+    const artists = await getTopArtists("long_term", 20);
+    expect(artists).toEqual([
+      { name: "Aphex Twin", genres: ["idm", "ambient"] },
+      { name: "Boards of Canada", genres: [] },
+    ]);
+    const url = (fetch as any).mock.calls[0][0] as string;
+    expect(url).toContain("/me/top/artists");
+    expect(url).toContain("time_range=long_term");
+    expect(url).toContain("limit=20");
+  });
+
+  it("mappe les top morceaux via mapTrack", async () => {
+    mockFetch({ json: async () => ({ items: [rawState.item] }) });
+    const tracks = await getTopTracks("medium_term", 15);
+    expect(tracks).toHaveLength(1);
+    expect(tracks[0]).toEqual({
+      uri: "spotify:track:1",
+      name: "So What",
+      artists: "Miles Davis",
+      albumName: "Kind of Blue",
+      albumArt: "http://img",
+      durationMs: 545000,
+    });
+    const url = (fetch as any).mock.calls[0][0] as string;
+    expect(url).toContain("/me/top/tracks");
+    expect(url).toContain("time_range=medium_term");
+    expect(url).toContain("limit=15");
   });
 });
 

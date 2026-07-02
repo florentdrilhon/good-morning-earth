@@ -13,6 +13,7 @@ const SCOPES = [
   "playlist-read-private",
   "playlist-modify-private",
   "playlist-modify-public",
+  "user-top-read",
 ].join(" ");
 
 let current: TokenSet | null = null;
@@ -73,6 +74,12 @@ async function persist(): Promise<void> {
   await invoke("save_secret", { key: "spotify_tokens", value: JSON.stringify(current) });
 }
 
+/** Oublie les tokens en mémoire et purge le keychain (déconnexion / migration de scope). */
+export async function clearTokens(): Promise<void> {
+  current = null;
+  await invoke("save_secret", { key: "spotify_tokens", value: "" });
+}
+
 export async function exchangeCode(code: string, verifier: string): Promise<void> {
   current = await tokenRequest({
     grant_type: "authorization_code",
@@ -105,8 +112,7 @@ export async function getAccessToken(): Promise<string> {
       current = await tokenRequest({ grant_type: "refresh_token", refresh_token: current.refreshToken });
     } catch (e) {
       if (e instanceof TokenHttpError && e.status === 400) {
-        current = null;
-        await invoke("save_secret", { key: "spotify_tokens", value: "" }); // purge le keychain
+        await clearTokens();
         throw new AuthExpiredError();
       }
       throw e;

@@ -3,6 +3,7 @@ import { login } from "./lib/spotify/login";
 import { loadStoredTokens, isAuthenticated } from "./lib/spotify/auth";
 import { startPoller } from "./lib/spotify/poller";
 import { announceTrack } from "./lib/agent/announcer";
+import { buildMessageContext, type LastTrackChange } from "./lib/agent/messageContext";
 import { OllamaDownError } from "./lib/agent/ollama";
 import type { PlaybackState } from "./lib/spotify/types";
 import { Player } from "./components/Player";
@@ -22,6 +23,8 @@ export default function App() {
   const radioModeRef = useRef(radioMode);
   radioModeRef.current = radioMode;
   const ollamaDownNotified = useRef(false);
+  const playbackRef = useRef<PlaybackState | null>(null);
+  const lastChangeRef = useRef<LastTrackChange | null>(null);
 
   useEffect(() => {
     loadStoredTokens().then(setAuthed);
@@ -30,9 +33,13 @@ export default function App() {
   useEffect(() => {
     if (!authed) return;
     return startPoller({
-      onState: setPlayback,
+      onState: (state) => {
+        playbackRef.current = state;
+        setPlayback(state);
+      },
       onAuthLost: () => setAuthed(false), // refresh token invalide → retour à l'écran de login
       onTrackChange: (track, previous) => {
+        lastChangeRef.current = { previous, at: Date.now() };
         if (!radioModeRef.current || !previous) return; // ref, pas de state stale ; pas d'intervention au premier morceau
         announceTrack(track, previous)
           .then((text) => {
@@ -78,7 +85,7 @@ export default function App() {
         <Chat
           messages={messages}
           busy={busy}
-          onSend={send}
+          onSend={(t) => send(t, buildMessageContext(playbackRef.current, lastChangeRef.current, Date.now()))}
           radioMode={radioMode}
           onToggleRadio={() => setRadioMode((on) => !on)}
         />

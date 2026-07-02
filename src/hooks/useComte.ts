@@ -13,10 +13,10 @@ export function useComte() {
     setMessages((m) => [...m, { role: "comte", text }]);
   };
 
-  const send = async (text: string) => {
+  const send = async (text: string, context?: string) => {
     setMessages((m) => [...m, { role: "user", text }]);
     setBusy(true);
-    history.current.push({ role: "user", content: text });
+    history.current.push({ role: "user", content: context ? `${text}\n\n${context}` : text });
     try {
       history.current = await runAgent(history.current);
       const last = history.current[history.current.length - 1];

@@ -43,6 +43,7 @@ export default function App() {
         if (!radioModeRef.current || !previous) return; // ref, pas de state stale ; pas d'intervention au premier morceau
         announceTrack(track, previous)
           .then((text) => {
+            if (playbackRef.current?.track?.uri !== track.uri) return; // annonce périmée : le morceau a déjà changé
             ollamaDownNotified.current = false;
             pushComte(text);
           })

@@ -1,0 +1,18 @@
+/* Design « Studio de nuit » — source de vérité : docs/design/brief.md */
+@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500&display=swap");
+
+:root {
+  --bg: #12100e;
+  --bg-deep: #0d0b0a;
+  --surface: #1b1815;
+  --surface-user: #2a2118;
+  --border: #2e2a24;
+  --text: #ede7dc;
+  --text-dim: #8c8577;
+  --accent: #e8863a;
+  --on-accent: #2a1608;
+  --radius: 8px;
+  --radius-bubble: 10px;
+  --font-ui: "Space Grotesk", -apple-system, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, monospace;
+}

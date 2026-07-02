@@ -37,4 +37,24 @@ describe("tokens", () => {
     expect(await getAccessToken()).toBe("AT"); // pas expiré → pas de refresh
     expect((fetch as any).mock.calls).toHaveLength(1);
   });
+
+  it("rafraîchit le token à l'expiration en conservant le refresh token", async () => {
+    (fetch as any)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ access_token: "AT", refresh_token: "RT", expires_in: 30 }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ access_token: "AT2", expires_in: 3600 }),
+      });
+    await exchangeCode("CODE", "VERIFIER");
+
+    expect(await getAccessToken()).toBe("AT2");
+    const refreshBody = (fetch as any).mock.calls[1][1].body as URLSearchParams;
+    expect(refreshBody.get("grant_type")).toBe("refresh_token");
+    expect(refreshBody.get("refresh_token")).toBe("RT");
+    const saveCalls = (invoke as any).mock.calls.filter((c: any[]) => c[0] === "save_secret");
+    expect(saveCalls.at(-1)[1].value).toContain('"refreshToken":"RT"');
+  });
 });

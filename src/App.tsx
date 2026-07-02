@@ -1,51 +1,35 @@
-import { useState } from "react";
-import reactLogo from "./assets/react.svg";
-import { invoke } from "@tauri-apps/api/core";
-import "./App.css";
+import { useEffect, useState } from "react";
+import { login } from "./lib/spotify/login";
+import { loadStoredTokens, isAuthenticated } from "./lib/spotify/auth";
+import { getPlaybackState, pause, resume, ensureActiveDevice } from "./lib/spotify/client";
+import type { PlaybackState } from "./lib/spotify/types";
 
-function App() {
-  const [greetMsg, setGreetMsg] = useState("");
-  const [name, setName] = useState("");
+export default function App() {
+  const [authed, setAuthed] = useState(false);
+  const [state, setState] = useState<PlaybackState | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  async function greet() {
-    // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-    setGreetMsg(await invoke("greet", { name }));
-  }
+  useEffect(() => {
+    loadStoredTokens().then((ok) => setAuthed(ok));
+  }, []);
+
+  useEffect(() => {
+    if (!authed) return;
+    const id = setInterval(() => getPlaybackState().then(setState).catch((e) => setError(String(e))), 3000);
+    return () => clearInterval(id);
+  }, [authed]);
+
+  const run = (fn: () => Promise<unknown>) => () =>
+    ensureActiveDevice().then(fn).then(() => setError(null)).catch((e) => setError(String(e)));
+
+  if (!authed)
+    return <button onClick={() => login().then(() => setAuthed(isAuthenticated()))}>Se connecter à Spotify</button>;
 
   return (
-    <main className="container">
-      <h1>Welcome to Tauri + React</h1>
-
-      <div className="row">
-        <a href="https://vite.dev" target="_blank">
-          <img src="/vite.svg" className="logo vite" alt="Vite logo" />
-        </a>
-        <a href="https://tauri.app" target="_blank">
-          <img src="/tauri.svg" className="logo tauri" alt="Tauri logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <p>Click on the Tauri, Vite, and React logos to learn more.</p>
-
-      <form
-        className="row"
-        onSubmit={(e) => {
-          e.preventDefault();
-          greet();
-        }}
-      >
-        <input
-          id="greet-input"
-          onChange={(e) => setName(e.currentTarget.value)}
-          placeholder="Enter a name..."
-        />
-        <button type="submit">Greet</button>
-      </form>
-      <p>{greetMsg}</p>
+    <main>
+      <p>{state?.track ? `${state.track.name} — ${state.track.artists}` : "Rien ne joue"}</p>
+      <button onClick={run(state?.isPlaying ? pause : resume)}>{state?.isPlaying ? "Pause" : "Play"}</button>
+      {error && <p style={{ color: "red" }}>{error}</p>}
     </main>
   );
 }
-
-export default App;

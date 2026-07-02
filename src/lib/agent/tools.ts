@@ -30,6 +30,8 @@ export const TOOL_DEFS: ToolDef[] = [
   tool("lastfm_similar_artists", "Artistes proches d'un artiste donné (données d'écoute réelles Last.fm).", { artist: str }, ["artist"]),
   tool("lastfm_similar_tracks", "Morceaux proches d'un morceau donné (Last.fm).", { artist: str, track: str }, ["artist", "track"]),
   tool("lastfm_tags", "Genres/tags principaux d'un artiste (Last.fm).", { artist: str }, ["artist"]),
+  tool("lastfm_tag_top_artists", "Les artistes majeurs d'un genre/tag précis (ex: progressive psytrance, hard groove). L'outil clé pour explorer un genre de niche.", { tag: str }, ["tag"]),
+  tool("lastfm_tag_top_tracks", "Les morceaux emblématiques d'un genre/tag précis (Last.fm).", { tag: str }, ["tag"]),
 ];
 
 export async function dispatch(name: string, args: Record<string, any>): Promise<string> {
@@ -52,6 +54,8 @@ export async function dispatch(name: string, args: Record<string, any>): Promise
       case "lastfm_similar_artists": return JSON.stringify(await fm.similarArtists(args.artist));
       case "lastfm_similar_tracks": return JSON.stringify(await fm.similarTracks(args.artist, args.track));
       case "lastfm_tags": return JSON.stringify(await fm.topTags(args.artist));
+      case "lastfm_tag_top_artists": return JSON.stringify(await fm.tagTopArtists(args.tag));
+      case "lastfm_tag_top_tracks": return JSON.stringify(await fm.tagTopTracks(args.tag));
       default: return `Outil inconnu: ${name}`;
     }
   } catch (e) {

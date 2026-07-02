@@ -24,3 +24,13 @@ export async function topTags(artist: string): Promise<string[]> {
   const j = await lastfm<any>({ method: "artist.gettoptags", artist });
   return (j.toptags?.tag ?? []).slice(0, 8).map((t: any) => t.name);
 }
+
+export async function tagTopArtists(tag: string): Promise<string[]> {
+  const j = await lastfm<any>({ method: "tag.gettopartists", tag, limit: "12" });
+  return (j.topartists?.artist ?? []).map((a: any) => a.name);
+}
+
+export async function tagTopTracks(tag: string): Promise<{ artist: string; name: string }[]> {
+  const j = await lastfm<any>({ method: "tag.gettoptracks", tag, limit: "12" });
+  return (j.tracks?.track ?? []).map((t: any) => ({ artist: t.artist?.name ?? "", name: t.name }));
+}

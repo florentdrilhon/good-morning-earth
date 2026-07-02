@@ -11,14 +11,14 @@ vi.mock("../spotify/client", () => ({
   getPlaybackState: vi.fn(), getQueue: vi.fn(), getPlaylists: vi.fn(), getPlaylistTracks: vi.fn(),
   getLikedTracks: vi.fn(), saveTrack: vi.fn(), addToPlaylist: vi.fn(), trackIdFromUri: (u: string) => u.split(":").pop(),
 }));
-vi.mock("../lastfm", () => ({ similarArtists: vi.fn(), similarTracks: vi.fn(), topTags: vi.fn() }));
+vi.mock("../lastfm", () => ({ similarArtists: vi.fn(), similarTracks: vi.fn(), topTags: vi.fn(), tagTopArtists: vi.fn(), tagTopTracks: vi.fn() }));
 
 import { TOOL_DEFS, dispatch } from "./tools";
 import { addToQueue, ensureActiveDevice } from "../spotify/client";
 
 describe("tools", () => {
   it("expose chaque outil avec un schéma valide", () => {
-    expect(TOOL_DEFS).toHaveLength(17);
+    expect(TOOL_DEFS).toHaveLength(19);
     for (const t of TOOL_DEFS) {
       expect(t.type).toBe("function");
       expect(t.function.name).toMatch(/^[a-z_]+$/);

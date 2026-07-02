@@ -1,3 +1,4 @@
+import { useState } from "react";
 import type { PlaybackState } from "../lib/spotify/types";
 import {
   pause,
@@ -15,6 +16,12 @@ export function Player({ state }: PlayerProps) {
     ensureActiveDevice().then(fn).catch(console.error);
   const track = state?.track;
   const isPlaying = state?.isPlaying ?? false;
+  // null = le slider suit l'état Spotify ; non-null = drag en cours
+  const [draftVolume, setDraftVolume] = useState<number | null>(null);
+  const commitVolume = () => {
+    if (draftVolume !== null) setVolume(draftVolume).catch(console.error);
+    setDraftVolume(null);
+  };
 
   return (
     <footer className="player">
@@ -60,8 +67,10 @@ export function Player({ state }: PlayerProps) {
         type="range"
         min={0}
         max={100}
-        defaultValue={state?.volumePercent ?? 50}
-        onChange={(e) => setVolume(Number(e.target.value)).catch(console.error)}
+        value={draftVolume ?? state?.volumePercent ?? 50}
+        onChange={(e) => setDraftVolume(Number(e.target.value))}
+        onPointerUp={commitVolume}
+        onKeyUp={commitVolume}
         className="player-volume"
         aria-label="Volume"
       />

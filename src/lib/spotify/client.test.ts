@@ -66,6 +66,11 @@ describe("client", () => {
     mockFetch({ status: 200, text: async () => "" });
     await expect(pause()).resolves.not.toThrow();
   });
+
+  it("signale l'endpoint quand le corps n'est pas du JSON", async () => {
+    mockFetch({ status: 200, text: async () => "ntDpmajRA2TCXiJvG9k13yHgFNA" });
+    await expect(pause()).rejects.toThrow(/corps non-JSON sur \/me\/player\/pause/);
+  });
 });
 
 describe("ensureActiveDevice", () => {

@@ -73,7 +73,11 @@ export async function exchangeCode(code: string, verifier: string): Promise<void
 export async function loadStoredTokens(): Promise<boolean> {
   const v = await invoke<string | null>("load_secret", { key: "spotify_tokens" });
   if (!v) return false;
-  current = JSON.parse(v);
+  try {
+    current = JSON.parse(v);
+  } catch {
+    return false; // valeur keychain illisible : repasser par le login
+  }
   return true;
 }
 

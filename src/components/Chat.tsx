@@ -31,7 +31,7 @@ export function Chat({ messages, busy, onSend }: ChatProps) {
     <div className="chat">
       <header className="chat-header">
         <span className="chat-header-title">Studio — Le Comte</span>
-        <span className="chat-onair">● On Air</span>
+        <span className="chat-onair">● ON AIR</span>
       </header>
       <div className="chat-messages">
         {messages.map((m, i) => (

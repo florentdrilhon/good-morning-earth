@@ -24,7 +24,9 @@ async function api<T>(path: string, init: RequestInit = {}, retried = false): Pr
   }
   if (res.status === 204) return null;
   if (!res.ok) throw new SpotifyError(res.status, await res.text());
-  return res.json();
+  const text = await res.text();
+  return text.trim() ? JSON.parse(text) : null; // Spotify renvoie parfois 200 avec un corps vide
+
 }
 
 export function mapTrack(item: any): Track {
@@ -124,4 +126,11 @@ export async function ensureActiveDevice(): Promise<void> {
   }
   if (!local) throw new Error("Spotify introuvable sur ce Mac — lance l'app Spotify et réessaie.");
   await transferPlayback(local.id);
+  // Le transfert est asynchrone côté Spotify : on attend que le device soit bien actif
+  // avant de rendre la main, sinon la commande suivante 404 (NO_ACTIVE_DEVICE).
+  for (let i = 0; i < 10; i++) {
+    if ((await getDevices()).some((d) => d.id === local!.id && d.is_active)) return;
+    await sleep(500);
+  }
+  throw new Error("Spotify n'a pas activé le device — lance l'app Spotify et réessaie.");
 }

@@ -3,7 +3,7 @@ import { describe, it, expect, vi, afterEach } from "vitest";
 vi.mock("@tauri-apps/api/core", () => ({ invoke: vi.fn().mockResolvedValue(null) }));
 vi.mock("./auth", () => ({ getAccessToken: vi.fn().mockResolvedValue("TOKEN") }));
 
-import { getPlaybackState, pause, searchTracks, addToQueue, getPlaylists, trackIdFromUri, saveTrack } from "./client";
+import { getPlaybackState, pause, searchTracks, addToQueue, getPlaylists, trackIdFromUri, saveTrack, ensureActiveDevice } from "./client";
 
 const rawState = {
   is_playing: true,
@@ -20,7 +20,11 @@ const rawState = {
 
 function mockFetch(...responses: Array<Partial<Response>>) {
   const fn = vi.fn();
-  for (const r of responses) fn.mockResolvedValueOnce({ ok: true, status: 200, headers: new Headers(), text: async () => "", ...r });
+  for (const r of responses) {
+    // api() lit désormais res.text() : sérialiser le json fourni pour rester compatible
+    const text = r.text ?? (r.json ? async () => JSON.stringify(await (r.json as any)()) : async () => "");
+    fn.mockResolvedValueOnce({ ok: true, status: 200, headers: new Headers(), ...r, text });
+  }
   vi.stubGlobal("fetch", fn);
   return fn;
 }
@@ -56,6 +60,32 @@ describe("client", () => {
     await pause();
     expect(f).toHaveBeenCalledTimes(2);
     expect(f.mock.calls[0][1].headers.Authorization).toBe("Bearer TOKEN");
+  });
+
+  it("tolère un corps vide sur un 200", async () => {
+    mockFetch({ status: 200, text: async () => "" });
+    await expect(pause()).resolves.not.toThrow();
+  });
+});
+
+describe("ensureActiveDevice", () => {
+  const devices = (...list: Array<Partial<import("./types").Device>>) => ({
+    json: async () => ({ devices: list }),
+  });
+
+  it("attend que le device transféré soit actif", async () => {
+    vi.useFakeTimers();
+    const f = mockFetch(
+      devices({ id: "c1", type: "Computer", is_active: false }),
+      { status: 204 }, // transferPlayback
+      devices({ id: "c1", type: "Computer", is_active: false }),
+      devices({ id: "c1", type: "Computer", is_active: true }),
+    );
+    const p = ensureActiveDevice();
+    await vi.advanceTimersByTimeAsync(500);
+    await expect(p).resolves.toBeUndefined();
+    expect(f).toHaveBeenCalledTimes(4);
+    vi.useRealTimers();
   });
 });
 

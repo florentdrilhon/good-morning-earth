@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   getPlaylists,
   getPlaylistTracks,
@@ -20,16 +20,26 @@ export function Library() {
   const [heading, setHeading] = useState("Titres likés");
   const [selected, setSelected] = useState<string>(LIKED);
   const [query, setQuery] = useState("");
+  // compteur de requêtes : seule la dernière sélection a le droit d'écrire tracks
+  const reqRef = useRef(0);
+
+  const loadTracks = (load: Promise<Track[]>) => {
+    const req = ++reqRef.current;
+    load.then((t) => {
+      if (reqRef.current === req) setTracks(t);
+    }).catch(console.error);
+  };
 
   useEffect(() => {
     getPlaylists().then(setPlaylists).catch(console.error);
-    getLikedTracks().then(setTracks).catch(console.error);
+    loadTracks(getLikedTracks());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const show = (id: string, label: string, load: Promise<Track[]>) => {
     setSelected(id);
     setHeading(label);
-    load.then(setTracks).catch(console.error);
+    loadTracks(load);
   };
 
   const search = (e: React.FormEvent) => {

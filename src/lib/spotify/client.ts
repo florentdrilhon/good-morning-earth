@@ -60,6 +60,28 @@ export async function getDevices(): Promise<Device[]> {
 export const transferPlayback = (deviceId: string) =>
   api("/me/player", { method: "PUT", body: JSON.stringify({ device_ids: [deviceId] }) });
 
+export async function searchTracks(query: string, limit = 8): Promise<Track[]> {
+  const p = new URLSearchParams({ q: query, type: "track", limit: String(limit) });
+  const raw = await api<any>(`/search?${p}`);
+  return (raw?.tracks?.items ?? []).map(mapTrack);
+}
+
+export const addToQueue = (uri: string) =>
+  api(`/me/player/queue?uri=${encodeURIComponent(uri)}`, { method: "POST" });
+
+export async function getQueue(): Promise<Track[]> {
+  const raw = await api<any>("/me/player/queue");
+  return (raw?.queue ?? []).map(mapTrack);
+}
+
+export const playTrack = (uri: string) =>
+  api("/me/player/play", { method: "PUT", body: JSON.stringify({ uris: [uri] }) });
+
+export const skipNext = () => api("/me/player/next", { method: "POST" });
+export const skipPrevious = () => api("/me/player/previous", { method: "POST" });
+export const setVolume = (percent: number) =>
+  api(`/me/player/volume?volume_percent=${Math.round(percent)}`, { method: "PUT" });
+
 export async function ensureActiveDevice(): Promise<void> {
   let devices = await getDevices();
   if (devices.some((d) => d.is_active)) return;

@@ -3,7 +3,7 @@ import { describe, it, expect, vi, afterEach } from "vitest";
 vi.mock("@tauri-apps/api/core", () => ({ invoke: vi.fn().mockResolvedValue(null) }));
 vi.mock("./auth", () => ({ getAccessToken: vi.fn().mockResolvedValue("TOKEN") }));
 
-import { getPlaybackState, pause } from "./client";
+import { getPlaybackState, pause, searchTracks, addToQueue } from "./client";
 
 const rawState = {
   is_playing: true,
@@ -56,5 +56,24 @@ describe("client", () => {
     await pause();
     expect(f).toHaveBeenCalledTimes(2);
     expect(f.mock.calls[0][1].headers.Authorization).toBe("Bearer TOKEN");
+  });
+});
+
+describe("recherche et queue", () => {
+  it("mappe les résultats de recherche", async () => {
+    mockFetch({ json: async () => ({ tracks: { items: [rawState.item] } }) });
+    const tracks = await searchTracks("so what");
+    expect(tracks).toHaveLength(1);
+    expect(tracks[0].uri).toBe("spotify:track:1");
+    const url = (fetch as any).mock.calls[0][0] as string;
+    expect(url).toContain("q=so+what");
+    expect(url).toContain("type=track");
+  });
+
+  it("encode l'URI dans l'ajout à la queue", async () => {
+    const f = mockFetch({ status: 204 });
+    await addToQueue("spotify:track:1");
+    expect(f.mock.calls[0][0]).toContain(`uri=${encodeURIComponent("spotify:track:1")}`);
+    expect(f.mock.calls[0][1].method).toBe("POST");
   });
 });

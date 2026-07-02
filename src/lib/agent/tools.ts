@@ -15,6 +15,7 @@ const tool = (name: string, description: string, properties: Record<string, unkn
 export const TOOL_DEFS: ToolDef[] = [
   tool("search_spotify", "Recherche des morceaux sur Spotify. Retourne nom, artistes, album et URI. TOUJOURS utiliser cet outil pour obtenir une URI avant de jouer ou mettre en file un morceau.", { query: str }, ["query"]),
   tool("play_track", "Joue un morceau (URI issue de search_spotify) UNIQUEMENT quand rien ne joue. Si un morceau est en cours, l'outil refuse : passe par add_to_queue (et skip seulement si l'auditeur le demande explicitement).", { uri: str }, ["uri"]),
+  tool("play_now", "Enchaîne IMMÉDIATEMENT sur un morceau sans laisser de blanc : le place en tête de file puis passe au morceau suivant. À utiliser UNIQUEMENT quand l'auditeur demande explicitement de zapper vers un morceau précis. URI issue de search_spotify.", { uri: str }, ["uri"]),
   tool("add_to_queue", "Ajoute un morceau à la file d'attente (URI issue de search_spotify). La file est append-only : ajoute 2-3 morceaux d'avance maximum.", { uri: str }, ["uri"]),
   tool("get_playback_state", "État actuel : morceau en cours, lecture/pause, volume."),
   tool("get_queue", "Liste les prochains morceaux de la file d'attente."),
@@ -40,9 +41,10 @@ export async function dispatch(name: string, args: Record<string, any>): Promise
       case "search_spotify": return JSON.stringify(slim(await sp.searchTracks(args.query)));
       case "play_track": {
         const state = await sp.getPlaybackState();
-        if (state?.isPlaying) return "Refusé : un morceau est en cours — je ne coupe jamais la musique. Utilise add_to_queue pour programmer la suite (puis skip UNIQUEMENT si l'auditeur a explicitement demandé de zapper).";
+        if (state?.isPlaying) return "Refusé : un morceau est en cours — je ne coupe jamais la musique. Utilise add_to_queue pour programmer la suite, ou play_now si l'auditeur a explicitement demandé d'enchaîner tout de suite.";
         await sp.ensureActiveDevice(); await sp.playTrack(args.uri); return "OK, lecture lancée";
       }
+      case "play_now": await sp.ensureActiveDevice(); await sp.addToQueue(args.uri); await sp.skipNext(); return "OK, j'enchaîne dessus";
       case "add_to_queue": await sp.ensureActiveDevice(); await sp.addToQueue(args.uri); return "OK, ajouté à la file";
       case "get_playback_state": return JSON.stringify(await sp.getPlaybackState());
       case "get_queue": return JSON.stringify(slim(await sp.getQueue()));

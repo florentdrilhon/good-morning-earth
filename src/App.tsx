@@ -6,6 +6,7 @@ import { startPoller } from "./lib/spotify/poller";
 import { announceTrack } from "./lib/agent/announcer";
 import { initListenerProfile } from "./lib/agent/profile";
 import { buildMessageContext, type LastTrackChange } from "./lib/agent/messageContext";
+import { shouldRelaunch, RELAUNCH_DIRECTIVE } from "./lib/agent/relaunch";
 import { OllamaDownError } from "./lib/agent/ollama";
 import type { PlaybackState } from "./lib/spotify/types";
 import { Player } from "./components/Player";
@@ -20,13 +21,17 @@ export default function App() {
   const [radioMode, setRadioMode] = useState(true);
   const [loginPending, setLoginPending] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
-  const { messages, busy, send, pushComte } = useComte();
+  const { messages, busy, send, sendDirective, pushComte } = useComte();
 
   const radioModeRef = useRef(radioMode);
   radioModeRef.current = radioMode;
+  const busyRef = useRef(busy);
+  busyRef.current = busy;
   const ollamaDownNotified = useRef(false);
   const playbackRef = useRef<PlaybackState | null>(null);
   const lastChangeRef = useRef<LastTrackChange | null>(null);
+  const wasPlayingRef = useRef(false);
+  const relaunchRequestedRef = useRef(false);
 
   useEffect(() => {
     loadStoredTokens().then(setAuthed);
@@ -43,6 +48,15 @@ export default function App() {
       onState: (state) => {
         playbackRef.current = state;
         setPlayback(state);
+        if (state?.isPlaying) {
+          wasPlayingRef.current = true;
+          relaunchRequestedRef.current = false;
+        }
+        if (radioModeRef.current && !relaunchRequestedRef.current && shouldRelaunch(state, wasPlayingRef.current) && !busyRef.current) {
+          relaunchRequestedRef.current = true;
+          wasPlayingRef.current = false;
+          sendDirective(RELAUNCH_DIRECTIVE);
+        }
       },
       onAuthLost: () => setAuthed(false), // refresh token invalide → retour à l'écran de login
       onTrackChange: (track, previous) => {

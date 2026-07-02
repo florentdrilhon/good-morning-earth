@@ -13,10 +13,8 @@ export function useComte() {
     setMessages((m) => [...m, { role: "comte", text }]);
   };
 
-  const send = async (text: string, context?: string) => {
-    setMessages((m) => [...m, { role: "user", text }]);
+  const runComte = async () => {
     setBusy(true);
-    history.current.push({ role: "user", content: context ? `${text}\n\n${context}` : text });
     try {
       history.current = await runAgent(history.current);
       const last = history.current[history.current.length - 1];
@@ -29,5 +27,18 @@ export function useComte() {
     }
   };
 
-  return { messages, busy, send, pushComte };
+  const send = (text: string, context?: string) => {
+    setMessages((m) => [...m, { role: "user", text }]);
+    history.current.push({ role: "user", content: context ? `${text}\n\n${context}` : text });
+    void runComte();
+  };
+
+  // Directive interne : pas de bulle utilisateur dans l'UI, seule la réponse du Comte s'affiche.
+  const sendDirective = (text: string) => {
+    if (busy) return; // l'appelant réessaiera à un tick ultérieur
+    history.current.push({ role: "user", content: text });
+    void runComte();
+  };
+
+  return { messages, busy, send, sendDirective, pushComte };
 }

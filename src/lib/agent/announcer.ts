@@ -9,10 +9,11 @@ export async function announceTrack(track: Track, previous: Track | null): Promi
       {
         role: "user",
         content:
-          `[ANTENNE] "${track.name}" de ${track.artists} démarre` +
+          `"${track.name}" de ${track.artists} démarre` +
           (previous ? ` juste après "${previous.name}" de ${previous.artists}` : "") +
           `. Fais une intervention d'antenne de 2-3 phrases maximum : anecdote, contexte ou transition. ` +
-          `Rien d'inventé — si tu ne sais rien de sûr sur ce morceau, parle de l'ambiance. Pas de question à l'auditeur.`,
+          `Rien d'inventé — si tu ne sais rien de sûr sur ce morceau, parle de l'ambiance. Pas de question à l'auditeur. ` +
+          `Ta réponse est prononcée telle quelle : aucun préfixe ni balise.`,
       },
     ],
     [], // pas d'outils : intervention pure, rapide

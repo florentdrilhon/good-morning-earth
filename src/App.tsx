@@ -3,6 +3,7 @@ import { login } from "./lib/spotify/login";
 import { loadStoredTokens, isAuthenticated } from "./lib/spotify/auth";
 import { startPoller } from "./lib/spotify/poller";
 import { announceTrack } from "./lib/agent/announcer";
+import { OllamaDownError } from "./lib/agent/ollama";
 import type { PlaybackState } from "./lib/spotify/types";
 import { Player } from "./components/Player";
 import { Library } from "./components/Library";
@@ -14,10 +15,13 @@ export default function App() {
   const [authed, setAuthed] = useState(false);
   const [playback, setPlayback] = useState<PlaybackState | null>(null);
   const [radioMode, setRadioMode] = useState(true);
+  const [loginPending, setLoginPending] = useState(false);
+  const [loginError, setLoginError] = useState<string | null>(null);
   const { messages, busy, send, pushComte } = useComte();
 
   const radioModeRef = useRef(radioMode);
   radioModeRef.current = radioMode;
+  const ollamaDownNotified = useRef(false);
 
   useEffect(() => {
     loadStoredTokens().then(setAuthed);
@@ -27,23 +31,41 @@ export default function App() {
     if (!authed) return;
     return startPoller({
       onState: setPlayback,
+      onAuthLost: () => setAuthed(false), // refresh token invalide → retour à l'écran de login
       onTrackChange: (track, previous) => {
         if (!radioModeRef.current || !previous) return; // ref, pas de state stale ; pas d'intervention au premier morceau
-        announceTrack(track, previous).then(pushComte).catch(() => {});
+        announceTrack(track, previous)
+          .then((text) => {
+            ollamaDownNotified.current = false;
+            pushComte(text);
+          })
+          .catch((e) => {
+            if (e instanceof OllamaDownError && !ollamaDownNotified.current) {
+              ollamaDownNotified.current = true;
+              pushComte(e.message);
+            }
+          });
       },
     });
   }, [authed]);
+
+  const handleLogin = () => {
+    setLoginError(null);
+    setLoginPending(true);
+    login()
+      .then(() => setAuthed(isAuthenticated()))
+      .catch(() => setLoginError("Connexion à Spotify échouée. Réessaie."))
+      .finally(() => setLoginPending(false));
+  };
 
   if (!authed)
     return (
       <div className="login-screen">
         <h1 className="login-title">Good Morning Earth</h1>
-        <button
-          className="login-button"
-          onClick={() => login().then(() => setAuthed(isAuthenticated()))}
-        >
+        <button className="login-button" onClick={handleLogin} disabled={loginPending}>
           Se connecter à Spotify
         </button>
+        {loginError && <p className="login-error">{loginError}</p>}
       </div>
     );
 

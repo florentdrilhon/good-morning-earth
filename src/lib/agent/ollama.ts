@@ -35,9 +35,10 @@ export async function chat(messages: ChatMessage[], tools: ToolDef[]): Promise<C
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ model: MODEL, messages, tools: tools.length ? tools : undefined, stream: false }),
+      signal: AbortSignal.timeout(120_000), // Ollama figé : abort → OllamaDownError, pas de chat bloqué à vie
     });
   } catch {
-    throw new OllamaDownError();
+    throw new OllamaDownError(); // couvre réseau + abort/timeout
   }
   if (!res.ok) throw new Error(`Ollama: ${res.status} ${await res.text()}`);
   const j = await res.json();

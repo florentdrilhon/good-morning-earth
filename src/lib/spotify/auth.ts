@@ -17,6 +17,19 @@ const SCOPES = [
 
 let current: TokenSet | null = null;
 
+/** Refresh token rejeté par Spotify (invalid_grant) : il faut relancer l'OAuth. */
+export class AuthExpiredError extends Error {
+  constructor() {
+    super("Session Spotify expirée. Reconnecte-toi.");
+  }
+}
+
+class TokenHttpError extends Error {
+  constructor(readonly status: number, body: string) {
+    super(`Spotify token: ${status} ${body}`);
+  }
+}
+
 export function randomVerifier(): string {
   const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~";
   const bytes = crypto.getRandomValues(new Uint8Array(64));
@@ -47,7 +60,7 @@ async function tokenRequest(params: Record<string, string>): Promise<TokenSet> {
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({ client_id: CLIENT_ID, ...params }),
   });
-  if (!res.ok) throw new Error(`Spotify token: ${res.status} ${await res.text()}`);
+  if (!res.ok) throw new TokenHttpError(res.status, await res.text());
   const j = await res.json();
   return {
     accessToken: j.access_token,
@@ -88,7 +101,16 @@ export function isAuthenticated(): boolean {
 export async function getAccessToken(): Promise<string> {
   if (!current) throw new Error("Non authentifié");
   if (Date.now() > current.expiresAt - 60_000) {
-    current = await tokenRequest({ grant_type: "refresh_token", refresh_token: current.refreshToken });
+    try {
+      current = await tokenRequest({ grant_type: "refresh_token", refresh_token: current.refreshToken });
+    } catch (e) {
+      if (e instanceof TokenHttpError && e.status === 400) {
+        current = null;
+        await invoke("save_secret", { key: "spotify_tokens", value: "" }); // purge le keychain
+        throw new AuthExpiredError();
+      }
+      throw e;
+    }
     await persist();
   }
   return current.accessToken;

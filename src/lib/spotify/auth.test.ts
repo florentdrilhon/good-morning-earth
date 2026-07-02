@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 vi.mock("@tauri-apps/api/core", () => ({ invoke: vi.fn().mockResolvedValue(null) }));
 
-import { randomVerifier, challengeFromVerifier, exchangeCode, getAccessToken } from "./auth";
+import { randomVerifier, challengeFromVerifier, exchangeCode, getAccessToken, AuthExpiredError, isAuthenticated } from "./auth";
 import { invoke } from "@tauri-apps/api/core";
 
 describe("PKCE", () => {
@@ -56,5 +56,20 @@ describe("tokens", () => {
     expect(refreshBody.get("refresh_token")).toBe("RT");
     const saveCalls = (invoke as any).mock.calls.filter((c: any[]) => c[0] === "save_secret");
     expect(saveCalls.at(-1)[1].value).toContain('"refreshToken":"RT"');
+  });
+
+  it("refresh 400 → AuthExpiredError, purge keychain et déconnecte", async () => {
+    (fetch as any)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ access_token: "AT", refresh_token: "RT", expires_in: 30 }),
+      })
+      .mockResolvedValueOnce({ ok: false, status: 400, text: async () => "invalid_grant" });
+    await exchangeCode("CODE", "VERIFIER");
+
+    await expect(getAccessToken()).rejects.toBeInstanceOf(AuthExpiredError);
+    expect(isAuthenticated()).toBe(false);
+    const saveCalls = (invoke as any).mock.calls.filter((c: any[]) => c[0] === "save_secret");
+    expect(saveCalls.at(-1)[1].value).toBe(""); // keychain purgé
   });
 });

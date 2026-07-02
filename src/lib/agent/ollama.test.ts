@@ -15,6 +15,7 @@ it("appelle l'endpoint OpenAI-compatible et retourne le message", async () => {
   const body = JSON.parse(init.body);
   expect(body.messages).toEqual([{ role: "user", content: "salut" }]);
   expect(body.stream).toBe(false);
+  expect(body.tools).toBeUndefined();
 });
 
 it("lève OllamaDownError si Ollama ne répond pas", async () => {

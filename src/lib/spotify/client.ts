@@ -1,6 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { getAccessToken } from "./auth";
-import type { Device, PlaybackState, Track } from "./types";
+import type { Device, PlaybackState, Playlist, Track } from "./types";
 
 const BASE = "https://api.spotify.com/v1";
 
@@ -81,6 +81,34 @@ export const skipNext = () => api("/me/player/next", { method: "POST" });
 export const skipPrevious = () => api("/me/player/previous", { method: "POST" });
 export const setVolume = (percent: number) =>
   api(`/me/player/volume?volume_percent=${Math.round(percent)}`, { method: "PUT" });
+
+export async function getPlaylists(): Promise<Playlist[]> {
+  const raw = await api<any>("/me/playlists?limit=50");
+  return (raw?.items ?? []).map((p: any) => ({
+    id: p.id,
+    name: p.name,
+    trackCount: p.tracks?.total ?? 0,
+    image: p.images?.[0]?.url ?? null,
+  }));
+}
+
+export async function getPlaylistTracks(id: string): Promise<Track[]> {
+  const raw = await api<any>(`/playlists/${id}/tracks?limit=100`);
+  return (raw?.items ?? []).filter((i: any) => i.track).map((i: any) => mapTrack(i.track));
+}
+
+export async function getLikedTracks(limit = 50): Promise<Track[]> {
+  const raw = await api<any>(`/me/tracks?limit=${limit}`);
+  return (raw?.items ?? []).map((i: any) => mapTrack(i.track));
+}
+
+export const trackIdFromUri = (uri: string) => uri.split(":").pop() ?? uri;
+
+export const saveTrack = (trackId: string) =>
+  api(`/me/tracks?ids=${trackId}`, { method: "PUT" });
+
+export const addToPlaylist = (playlistId: string, uri: string) =>
+  api(`/playlists/${playlistId}/tracks`, { method: "POST", body: JSON.stringify({ uris: [uri] }) });
 
 export async function ensureActiveDevice(): Promise<void> {
   let devices = await getDevices();

@@ -4,6 +4,7 @@ vi.mock("@tauri-apps/api/core", () => ({ invoke: vi.fn().mockResolvedValue(null)
 vi.mock("./auth", () => ({ getAccessToken: vi.fn().mockResolvedValue("TOKEN") }));
 
 import { getPlaybackState, pause, searchTracks, addToQueue } from "./client";
+import { getPlaylists, trackIdFromUri, saveTrack } from "./client";
 
 const rawState = {
   is_playing: true,
@@ -76,5 +77,24 @@ describe("recherche et queue", () => {
     await addToQueue("spotify:track:1");
     expect(f.mock.calls[0][0]).toContain(`uri=${encodeURIComponent("spotify:track:1")}`);
     expect(f.mock.calls[0][1].method).toBe("POST");
+  });
+});
+
+describe("bibliothèque", () => {
+  it("mappe les playlists", async () => {
+    mockFetch({
+      json: async () => ({
+        items: [{ id: "p1", name: "Jazz", tracks: { total: 12 }, images: [{ url: "http://i" }] }],
+      }),
+    });
+    expect(await getPlaylists()).toEqual([{ id: "p1", name: "Jazz", trackCount: 12, image: "http://i" }]);
+  });
+
+  it("extrait l'id d'une URI et sauvegarde", async () => {
+    expect(trackIdFromUri("spotify:track:abc123")).toBe("abc123");
+    const f = mockFetch({ status: 204 });
+    await saveTrack("abc123");
+    expect(f.mock.calls[0][0]).toContain("/me/tracks?ids=abc123");
+    expect(f.mock.calls[0][1].method).toBe("PUT");
   });
 });

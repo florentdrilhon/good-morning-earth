@@ -5,6 +5,7 @@ import { randomVerifier, buildAuthUrl, exchangeCode, REDIRECT_PORT } from "./aut
 export async function login(): Promise<void> {
   const verifier = randomVerifier();
   await start({ ports: [REDIRECT_PORT] });
+  let unlisten: (() => void) | undefined;
   try {
     const code = await new Promise<string>((resolve, reject) => {
       onUrl((url) => {
@@ -13,13 +14,18 @@ export async function login(): Promise<void> {
         if (err) return reject(new Error(`Spotify a refusé: ${err}`));
         const c = u.searchParams.get("code");
         if (c) resolve(c);
+        else reject(new Error(`Redirection Spotify invalide: ${url}`));
       })
+        .then((fn) => {
+          unlisten = fn;
+        })
         .then(() => buildAuthUrl(verifier))
         .then(openUrl)
         .catch(reject);
     });
     await exchangeCode(code, verifier);
   } finally {
+    unlisten?.();
     await cancel(REDIRECT_PORT).catch(() => {});
   }
 }

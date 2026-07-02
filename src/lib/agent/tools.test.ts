@@ -14,7 +14,7 @@ vi.mock("../spotify/client", () => ({
 vi.mock("../lastfm", () => ({ similarArtists: vi.fn(), similarTracks: vi.fn(), topTags: vi.fn(), tagTopArtists: vi.fn(), tagTopTracks: vi.fn() }));
 
 import { TOOL_DEFS, dispatch } from "./tools";
-import { addToQueue, ensureActiveDevice } from "../spotify/client";
+import { addToQueue, ensureActiveDevice, getPlaybackState, playTrack } from "../spotify/client";
 
 describe("tools", () => {
   it("expose chaque outil avec un schéma valide", () => {
@@ -35,6 +35,19 @@ describe("tools", () => {
     await dispatch("add_to_queue", { uri: "spotify:track:1" });
     expect(ensureActiveDevice).toHaveBeenCalled();
     expect(addToQueue).toHaveBeenCalledWith("spotify:track:1");
+  });
+
+  it("play_track refuse de couper un morceau en cours", async () => {
+    vi.mocked(getPlaybackState).mockResolvedValue({ track: null, isPlaying: true, progressMs: 0, volumePercent: 50 });
+    const out = await dispatch("play_track", { uri: "spotify:track:1" });
+    expect(out).toContain("je ne coupe jamais la musique");
+    expect(playTrack).not.toHaveBeenCalled();
+  });
+
+  it("play_track joue quand rien ne joue", async () => {
+    vi.mocked(getPlaybackState).mockResolvedValue(null);
+    await dispatch("play_track", { uri: "spotify:track:1" });
+    expect(playTrack).toHaveBeenCalledWith("spotify:track:1");
   });
 
   it("outil inconnu → message d'erreur, pas d'exception", async () => {

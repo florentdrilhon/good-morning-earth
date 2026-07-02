@@ -23,7 +23,13 @@ function mockFetch(...responses: Array<Partial<Response>>) {
   for (const r of responses) {
     // api() lit désormais res.text() : sérialiser le json fourni pour rester compatible
     const text = r.text ?? (r.json ? async () => JSON.stringify(await (r.json as any)()) : async () => "");
-    fn.mockResolvedValueOnce({ ok: true, status: 200, headers: new Headers(), ...r, text });
+    fn.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      headers: new Headers({ "Content-Type": "application/json" }),
+      ...r,
+      text,
+    });
   }
   vi.stubGlobal("fetch", fn);
   return fn;
@@ -67,9 +73,14 @@ describe("client", () => {
     await expect(pause()).resolves.not.toThrow();
   });
 
-  it("signale l'endpoint quand le corps n'est pas du JSON", async () => {
-    mockFetch({ status: 200, text: async () => "ntDpmajRA2TCXiJvG9k13yHgFNA" });
-    await expect(pause()).rejects.toThrow(/corps non-JSON sur \/me\/player\/pause/);
+  it("ignore un corps non-JSON quand le Content-Type n'est pas json", async () => {
+    mockFetch({ status: 200, headers: new Headers(), text: async () => "ntDpmajRA2TCXiJvG9k13yHgFNA" });
+    await expect(pause()).resolves.toBeNull();
+  });
+
+  it("signale l'endpoint quand un corps annoncé JSON est invalide", async () => {
+    mockFetch({ status: 200, text: async () => "pas du json" });
+    await expect(pause()).rejects.toThrow(/JSON invalide sur \/me\/player\/pause/);
   });
 });
 

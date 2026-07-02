@@ -25,11 +25,13 @@ async function api<T>(path: string, init: RequestInit = {}, retried = false): Pr
   if (res.status === 204) return null;
   if (!res.ok) throw new SpotifyError(res.status, await res.text());
   const text = await res.text();
-  if (!text.trim()) return null; // Spotify renvoie parfois 200 avec un corps vide
+  const isJson = (res.headers.get("Content-Type") ?? "").includes("json");
+  // les commandes player renvoient parfois 200 avec un corps vide ou un id brut : rien à parser
+  if (!text.trim() || !isJson) return null;
   try {
     return JSON.parse(text);
   } catch {
-    throw new SpotifyError(res.status, `corps non-JSON sur ${path}: ${text.slice(0, 80)}`);
+    throw new SpotifyError(res.status, `JSON invalide sur ${path}: ${text.slice(0, 80)}`);
   }
 
 }

@@ -3,8 +3,7 @@ import { describe, it, expect, vi, afterEach } from "vitest";
 vi.mock("@tauri-apps/api/core", () => ({ invoke: vi.fn().mockResolvedValue(null) }));
 vi.mock("./auth", () => ({ getAccessToken: vi.fn().mockResolvedValue("TOKEN") }));
 
-import { getPlaybackState, pause, searchTracks, addToQueue } from "./client";
-import { getPlaylists, trackIdFromUri, saveTrack } from "./client";
+import { getPlaybackState, pause, searchTracks, addToQueue, getPlaylists, trackIdFromUri, saveTrack } from "./client";
 
 const rawState = {
   is_playing: true,

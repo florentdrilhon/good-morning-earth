@@ -4,6 +4,7 @@ import { loadStoredTokens, isAuthenticated } from "./lib/spotify/auth";
 import { startPoller } from "./lib/spotify/poller";
 import type { PlaybackState } from "./lib/spotify/types";
 import { Player } from "./components/Player";
+import { Library } from "./components/Library";
 import "./App.css";
 
 export default function App() {
@@ -34,7 +35,9 @@ export default function App() {
 
   return (
     <div className="layout">
-      <aside className="zone-library">{/* Bibliothèque — Task 12 */}</aside>
+      <aside className="zone-library">
+        <Library />
+      </aside>
       <section className="zone-chat">{/* Chat du Comte — Task 13 */}</section>
       <Player state={playback} />
     </div>
